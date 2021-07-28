@@ -1,4 +1,4 @@
-//require('dotenv').config()
+require('dotenv').config()
 const express = require('express')
 
 const { dbCon } = require('./DataBases/config')
@@ -47,6 +47,9 @@ class Server{
         // https://socket.io/docs/v4/handling-cors/
         // https://socket.io/docs/v4/troubleshooting-connection-issues/#The-server-does-not-send-the-necessary-CORS-headers
         // https://socket.io/docs/v3/troubleshooting-connection-issues/
+
+        // allowEIO3: true => Corrige: websocket.js:124 WebSocket connection to 'ws://localhost:8080/socket.io/?EIO=3&transport=websocket' failed: Invalid frame header
+
         const io = new Server(this.server, {cors: {origin: '*',}, allowEIO3: true});
 
         io.on('connection', (socket) => {
