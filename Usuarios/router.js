@@ -3,8 +3,7 @@ const { check } = require('express-validator')
 
 const router = Router()
 
-const { validarChecks } = require('./Middlewares/validators.generics')
-//const { validarJWT } = require('./Middlewares/validators.generics')
+const { validarChecks, validarJWT } = require('./Middlewares/validators.generics')
 const { registro, login, getUser, userPatch, userDelete } = require('./controlador')
 const { usuarioNoExists, emailNoExists, cedulaNoExists } = require('./Middlewares/validators.database')
 
@@ -34,17 +33,17 @@ router.post('/registro', [
         .matches(telefonos_pattern).withMessage('El celular no cumple las condiciones necesarias'),
     check('foto', 'Foto es obligatorio').notEmpty(),
     // El rol no es "registrable"
-    check('email')
-        .matches(email_pattern).withMessage('La email no cumple las condiciones necesarias')
-        .custom( emailNoExists ).withMessage("Este email ya existe."),
+    //check('email') // El email no es exigido en el Front
+    //    .matches(email_pattern).withMessage('La email no cumple las condiciones necesarias')
+    //    .custom( emailNoExists ).withMessage("Este email ya existe."),
     validarChecks], registro)
     
 router.post('/login', login)
 
-router.get('/user/:_id', [], getUser)
+router.get('/user/:_id', [validarJWT, validarChecks], getUser)
 
-router.patch('/user/:_id', [], userPatch)
+router.patch('/user/:_id', [validarJWT, validarChecks], userPatch)
 
-router.delete('/user/:_id', [], userDelete)
+router.delete('/user/:_id', [validarJWT, validarChecks], userDelete)
 
 module.exports = router
