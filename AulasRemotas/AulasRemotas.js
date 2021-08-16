@@ -32,6 +32,8 @@ function usuarioDesconectado(){
 
 const aulasRemotas = (socket) => {
     //console.log('Usuario conectado a Aulas Remotas')
+    // FIXME: emitir recibido...
+    console.log("Conexión Realizada:", socket.handshake.headers.origin)
 
     socket.on('oferta', recibeOferta)
     socket.on('candidato', recibirCandidato)

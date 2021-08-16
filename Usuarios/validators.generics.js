@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator')
-const Usuario = require('../usuario.model')
+const Usuario = require('./usuario.model')
 const jwt = require('jsonwebtoken')
 
 
@@ -20,9 +20,9 @@ exports.validarJWT = (req, res, next) => {
     if (!token || token === null || token === undefined) {
         res.status(401).json({msg: "No tiene autorización."})}
 
-    // FIXME: TokenExpiredError
     try{
-        const { id } = jwt.verify(token, process.env.SECRET)
+        const { id, exp } = jwt.verify(token, process.env.SECRET)
+        console.log(exp, exp < Date.now() / 1000)
         Usuario.findOne({ _id: id })
             .then(doc => {
                 if (doc) {
@@ -36,6 +36,7 @@ exports.validarJWT = (req, res, next) => {
             })
         }
     catch (error) {
+        // FIXME: TokenExpiredError
         console.log(error)
         return res.status(401).json({msg:'Token ha expirado'})
     }

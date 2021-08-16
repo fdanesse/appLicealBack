@@ -3,15 +3,15 @@ const { check } = require('express-validator')
 
 const router = Router()
 
-const { validarChecks, validarJWT } = require('./Middlewares/validators.generics')
+const { validarChecks, validarJWT } = require('./validators.generics')
 const { registro, login, getUser, userPatch, userDelete } = require('./controlador')
-const { usuarioNoExists, emailNoExists, cedulaNoExists } = require('./Middlewares/validators.database')
+const { usuarioNoExists, emailNoExists, cedulaNoExists } = require('./validators.database')
 
 
 const names_pattern = '^[a-zA-ZÁ-Úá-ú]{2,15}( ?[a-zA-ZÁ-Úá-ú]{1,15})*[a-zA-ZÁ-Úá-ú]+$';
 const telefonos_pattern = '^[0-9]{9}$';
 const cedula_pattern = '^[0-9]{8}$';
-const email_pattern = '[A-Za-z0-9._%-]+@[A-Za-z0-9._%-]+\\.[a-z]{2,3}';
+//const email_pattern = '[A-Za-z0-9._%-]+@[A-Za-z0-9._%-]+\\.[a-z]{2,3}';
 const password_pattern = '(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[$@$!%*?&])[A-Za-z\d$@$!%*?&].{12,16}';
 const userName_pattern = '^[a-zA-Z0-9_-]{4,12}$';
 

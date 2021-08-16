@@ -3,6 +3,7 @@ const express = require('express')
 
 const { dbCon } = require('./DataBases/config')
 const { aulasRemotas } = require('./AulasRemotas/AulasRemotas')
+const { socketValidator } = require('./AulasRemotas/socketValidator')
 
 const cors = require('cors')
 
@@ -51,8 +52,11 @@ class Server{
 
         // allowEIO3: true => Corrige: websocket.js:124 WebSocket connection to 'ws://localhost:8080/socket.io/?EIO=3&transport=websocket' failed: Invalid frame header
         const io = new Server(this.server, {cors: {origin: '*',}, allowEIO3: true});
+
+        //https://socket.io/docs/v3/middlewares/
+        io.use(socketValidator)
         io.on('connection', aulasRemotas)
-        io.on('connect_error', (err) => {console.log(err);})
+        io.on('connect_error', (err) => {console.log("Error de conexión", err);})
 
         /* https://socket.io/docs/v3/rooms/#Room-events
         io.of("/").adapter.on("create-room", (room) => {
