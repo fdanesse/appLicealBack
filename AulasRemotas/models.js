@@ -1,10 +1,20 @@
-
-module.exports = class Conexion{
-    constructor(id, origen, tiempo, direccion, token){
+// Las conexiones se identifican porel id del socket
+class Conexion{
+    constructor(id, userId, tiempo){
         this.id = id
-        this.origen = origen
+        this.userId = userId
         this.tiempo = tiempo
-        this.direccion = direccion
-        this.token = token
     }
 }
+
+// Las aulas se identifican por el id del anfitrion
+class Aula{
+    constructor(nombre, id, anfitrion){
+        this.nombre = nombre
+        this.id = id
+        this.anfitrion = anfitrion
+        this.terminales = []
+    }
+}
+
+module.exports = {Conexion, Aula}
