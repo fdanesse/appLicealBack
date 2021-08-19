@@ -1,7 +1,6 @@
-// Las conexiones se identifican porel id del socket
+// Las conexiones se identifican por el id del usuario
 class Conexion{
-    constructor(id, userId, tiempo){
-        this.id = id
+    constructor(userId, tiempo){
         this.userId = userId
         this.tiempo = tiempo
     }

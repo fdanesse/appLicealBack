@@ -40,15 +40,6 @@ module.exports = class SocketServer {
 
     socketValidator(socket, next) {
         // Valida o rechaza intentos de conexión y mantenemos un array de conexiones activas
-        socket.on('disconnect', (reason) => {
-            let desconectados = this.conexiones.filter(conexion => conexion.id == socket.id);
-            desconectados.forEach((elemento, indice) => {
-                let pos = this.conexiones.indexOf(elemento)
-                let eliminado = this.conexiones.splice(pos, 1)
-                console.log("Conexión Terminada:", reason)
-            })
-        })
-    
         const token = socket.handshake.query.token
         if (!token || token === null || token === undefined) {
             console.log("No tiene autorización. 1")
@@ -75,14 +66,20 @@ module.exports = class SocketServer {
             socket.disconnect()
         }
         
-        const conexion = new Conexion(
-            socket.id,
-            userId,
-            socket.handshake.time,
-        )
+
+
+        socket.on('disconnect', (reason) => {
+            let desconectado = this.conexiones.find(elemento => elemento.userId === userId)
+            if (desconectado){
+                let pos = this.conexiones.indexOf(desconectado)
+                let eliminado = this.conexiones.splice(pos, 1)
+                console.log("Conexión Terminada:", "Socket:", socket.id, "userId:", userId, reason)
+            }
+        })
+
+        const conexion = new Conexion(userId, socket.handshake.time)
 
         let con = undefined /*this.conexiones.find(elemento => 
-            elemento.id === conexion.id |
             elemento.userId === conexion.userId
             )
         */
@@ -97,22 +94,27 @@ module.exports = class SocketServer {
 
     aulasRemotas (socket) {
         // Usuario ha pasado la validación y puede crear o conectarse a un aula
-        console.log("Conexión Realizada:", socket.id)
+        console.log("Conexión Realizada:", "socket:", socket.id)
+        // FIXME: al ingresar al aula la conexion se reinicia y cambia el id del socket
 
         socket.on('oferta', (data) => this.recibeOferta(data, socket, this.aulas))
         socket.on('candidato', (data) => this.recibirCandidato(data, socket))
         socket.on('respuesta', (data) => this.recibirRespuesta(data, socket))
-        socket.on('disconnect', () => this.usuarioDesconectado(socket))
+        //socket.on('disconnect', () => this.usuarioDesconectado(socket))
     }
 
     recibirCandidato(data, socket){
-        console.log('Candidato recibido:', socket.id)
-        //socket.to(this.aula).emit('candidato', data)
+        let {aula, userId, ice} = data
+        console.log('Candidato recibido:', socket.id, userId)
+        const aulaName = aula.nombre + aula.id
+        socket.to(aulaName).emit('candidato', {userId: userId, ice: ice})
     }
     
     recibirRespuesta(data, socket){
-        console.log('Respuesta recibida:', socket.id)
-        //socket.to(this.aula).emit('respuesta', data)
+        let {aula, userId, sdp} = data
+        console.log('Respuesta recibida:', socket.id, userId)
+        const aulaName = aula.nombre + aula.id
+        socket.to(aulaName).emit('respuesta', {userId: userId, sdp: sdp})
     }
     
     usuarioDesconectado(socket){
@@ -121,27 +123,29 @@ module.exports = class SocketServer {
     }
 
     recibeOferta(data, socket, aulas){
-        // Todos los usuarios emiten una oferta inicial al conectarse a un aula específica
-        // Si dicha aula no existe, se crea.
-        
-        const { id } = jwt.verify(socket.handshake.query.token, process.env.SECRET)
-        const conexion = new Conexion(socket.id, id, socket.handshake.time)
+        // data trae el aula a la que se desea conectar o crear.
+        // el userId del remitente de la oferta y
+        // la oferta de conexion.
+        let {aula, userId, sdp} = data
+
+        console.log("Oferta Recibida:", "Socket:", socket.id, "userId:", userId, "aula:", aula)
+
+        const conexion = new Conexion(userId, socket.handshake.time)
 
         let currentAula = aulas.find(_aula => {
-            _aula.nombre == data['aula']['nombre'] &
-            _aula.id == data['aula']['id']})
+            _aula.nombre == aula['nombre'] &
+            _aula.id == aula['id']})
         if (currentAula){
             currentAula = aulas[aulas.indexOf(currentAula)]
             currentAula.terminales.push(conexion)
         }else{
-            const {nombre, id} = data['aula']
+            const {nombre, id} = aula
             currentAula = new Aula(nombre, id, conexion)
             aulas.push(currentAula)
         }
         
-        console.log(currentAula)
         const aulaName = currentAula.nombre + currentAula.id
         socket.join(aulaName)
-        socket.to(aulaName).emit('oferta', data['sdp'])
+        socket.to(aulaName).emit('oferta', {userId: userId, sdp: sdp})
     }
 }
