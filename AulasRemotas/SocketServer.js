@@ -66,86 +66,95 @@ module.exports = class SocketServer {
             socket.disconnect()
         }
         
-
-
-        socket.on('disconnect', (reason) => {
-            let desconectado = this.conexiones.find(elemento => elemento.userId === userId)
-            if (desconectado){
-                let pos = this.conexiones.indexOf(desconectado)
-                let eliminado = this.conexiones.splice(pos, 1)
-                console.log("Conexión Terminada:", "Socket:", socket.id, "userId:", userId, reason)
-            }
-        })
-
-        const conexion = new Conexion(userId, socket.handshake.time)
-
-        let con = undefined /*this.conexiones.find(elemento => 
-            elemento.userId === conexion.userId
-            )
-        */
+        //FIXME: deshabilitado para testear
+        next()
+        /*
+        let con = this.conexiones.find(elemento => elemento.userId === userId)
         if (!con | con === undefined | con === null){
-            this.conexiones.push(conexion)
             next()
         }else{
             console.log("Conexión rechazada", con)
             socket.disconnect()
         }
+        */
     }
 
     aulasRemotas (socket) {
         // Usuario ha pasado la validación y puede crear o conectarse a un aula
-        console.log("Conexión Realizada:", "socket:", socket.id)
-        // FIXME: al ingresar al aula la conexion se reinicia y cambia el id del socket
+        const token = socket.handshake.query.token
+        // FIXME: TokenExpiredError
+        const { id } = jwt.verify(token, process.env.SECRET)
+        const conexion = new Conexion(socket.id, id, socket.handshake.time)
+        this.conexiones.push(conexion)
+        console.log("Conexión Realizada:", conexion)
+        
+        socket.on('disconnect', (reason) => {
+            let desconectado = this.conexiones.find(elemento => elemento.socketId === socket.id)
+            if (desconectado){
+                let pos = this.conexiones.indexOf(desconectado)
+                let eliminado = this.conexiones.splice(pos, 1)
+                console.log("Conexión Terminada:", desconectado, reason)
+            }
+        })
 
-        socket.on('oferta', (data) => this.recibeOferta(data, socket, this.aulas))
+        socket.on('hello', (data) => this.recibirhello(data, socket, conexion))
+
+        socket.on('oferta', (data) => this.recibeOferta(data, socket))
         socket.on('candidato', (data) => this.recibirCandidato(data, socket))
         socket.on('respuesta', (data) => this.recibirRespuesta(data, socket))
         //socket.on('disconnect', () => this.usuarioDesconectado(socket))
     }
 
+    recibirhello(aula, socket, conexion){
+        // Cuando un usuario ingresa a un aula saluda.
+        const {nombre, id} = aula
+        const aulaName = nombre + id
+
+        // FIXME: Implementar Correctamente
+        /*
+        let currentAula = this.aulas.find(_aula => {_aula.nombre == aula.nombre & _aula.id == aula.id})
+        if (currentAula){
+            currentAula = this.aulas[this.aulas.indexOf(currentAula)]
+            console.log("Agregando Conexión a aula:")
+            console.log("Aula:", currentAula)
+            console.log("Conexión:", conexión)
+        }else{
+            currentAula = new Aula(nombre, id, conexion)
+            this.aulas.push(currentAula)
+            console.log("Creando Aula:")
+            console.log("Aula:", currentAula)
+            console.log("Conexión:", conexion)
+        }
+
+        currentAula.terminales.push(conexion)
+        console.log("\n", this.aulas, "\n")
+        */
+
+        socket.join(aulaName)
+        socket.to(aulaName).emit('hello', conexion)
+    }
+
     recibirCandidato(data, socket){
-        let {aula, userId, ice} = data
-        console.log('Candidato recibido:', socket.id, userId)
-        const aulaName = aula.nombre + aula.id
-        socket.to(aulaName).emit('candidato', {userId: userId, ice: ice})
+        let {socketIdDestino, ice} = data
+        console.log('Candidato recibido:', "Remite:", socket.id, "Destino:", socketIdDestino)
+        socket.to(socketIdDestino).emit('candidato', {remitente: socket.id, ice: ice})
     }
     
     recibirRespuesta(data, socket){
-        let {aula, userId, sdp} = data
-        console.log('Respuesta recibida:', socket.id, userId)
-        const aulaName = aula.nombre + aula.id
-        socket.to(aulaName).emit('respuesta', {userId: userId, sdp: sdp})
+        let {socketIdDestino, sdp} = data
+        console.log('Respuesta recibida:', "Remite:", socket.id, "Destino:", socketIdDestino)
+        socket.to(socketIdDestino).emit('respuesta', {remitente: socket.id, sdp: sdp})
     }
     
     usuarioDesconectado(socket){
         console.log('Usuario desconectado:', socket.id)
-        //socket.to(this.aula).emit('desconectado', socket.id)
+        socket.to(this.aula).emit('desconectado', socket.id)
     }
 
-    recibeOferta(data, socket, aulas){
-        // data trae el aula a la que se desea conectar o crear.
-        // el userId del remitente de la oferta y
-        // la oferta de conexion.
-        let {aula, userId, sdp} = data
-
-        console.log("Oferta Recibida:", "Socket:", socket.id, "userId:", userId, "aula:", aula)
-
-        const conexion = new Conexion(userId, socket.handshake.time)
-
-        let currentAula = aulas.find(_aula => {
-            _aula.nombre == aula['nombre'] &
-            _aula.id == aula['id']})
-        if (currentAula){
-            currentAula = aulas[aulas.indexOf(currentAula)]
-            currentAula.terminales.push(conexion)
-        }else{
-            const {nombre, id} = aula
-            currentAula = new Aula(nombre, id, conexion)
-            aulas.push(currentAula)
-        }
-        
-        const aulaName = currentAula.nombre + currentAula.id
-        socket.join(aulaName)
-        socket.to(aulaName).emit('oferta', {userId: userId, sdp: sdp})
+    recibeOferta(data, socket){
+        let conexion = this.conexiones.find(elemento => elemento.socketId === socket.id)
+        const {socketIdDestino, sdp} = data
+        console.log("Oferta Recibida:", "Remite:", socket.id, 'Destino:', socketIdDestino)
+        socket.to(socketIdDestino).emit('oferta', {conexionRemitente: conexion, sdp: sdp})
     }
 }
