@@ -86,7 +86,7 @@ module.exports = class SocketServer {
         const { id } = jwt.verify(token, process.env.SECRET)
         const conexion = new Conexion(socket.id, id, socket.handshake.time)
         this.conexiones.push(conexion)
-        console.log("Conexión Realizada:", conexion)
+        //console.log("Conexión Realizada:", conexion)
         
         socket.on('disconnect', (reason) => {
             let desconectado = this.conexiones.find(elemento => elemento.socketId === socket.id)
@@ -95,6 +95,12 @@ module.exports = class SocketServer {
                 let eliminado = this.conexiones.splice(pos, 1)
                 console.log("Conexión Terminada:", desconectado, reason)
             }
+            this.conexiones.forEach(conexion => {
+                socket.to(conexion.socketId).emit('desconectado', desconectado.socketId)
+            })
+
+            // FIXME:
+            // this.aulas
         })
 
         socket.on('hello', (data) => this.recibirhello(data, socket, conexion))
@@ -102,7 +108,6 @@ module.exports = class SocketServer {
         socket.on('oferta', (data) => this.recibeOferta(data, socket))
         socket.on('candidato', (data) => this.recibirCandidato(data, socket))
         socket.on('respuesta', (data) => this.recibirRespuesta(data, socket))
-        //socket.on('disconnect', () => this.usuarioDesconectado(socket))
     }
 
     recibirhello(aula, socket, conexion){
@@ -136,25 +141,20 @@ module.exports = class SocketServer {
 
     recibirCandidato(data, socket){
         let {socketIdDestino, ice} = data
-        console.log('Candidato recibido:', "Remite:", socket.id, "Destino:", socketIdDestino)
+        //console.log('Candidato recibido:', "Remite:", socket.id, "Destino:", socketIdDestino)
         socket.to(socketIdDestino).emit('candidato', {remitente: socket.id, ice: ice})
     }
     
     recibirRespuesta(data, socket){
         let {socketIdDestino, sdp} = data
-        console.log('Respuesta recibida:', "Remite:", socket.id, "Destino:", socketIdDestino)
+        //console.log('Respuesta recibida:', "Remite:", socket.id, "Destino:", socketIdDestino)
         socket.to(socketIdDestino).emit('respuesta', {remitente: socket.id, sdp: sdp})
-    }
-    
-    usuarioDesconectado(socket){
-        console.log('Usuario desconectado:', socket.id)
-        socket.to(this.aula).emit('desconectado', socket.id)
     }
 
     recibeOferta(data, socket){
         let conexion = this.conexiones.find(elemento => elemento.socketId === socket.id)
         const {socketIdDestino, sdp} = data
-        console.log("Oferta Recibida:", "Remite:", socket.id, 'Destino:', socketIdDestino)
+        //console.log("Oferta Recibida:", "Remite:", socket.id, 'Destino:', socketIdDestino)
         socket.to(socketIdDestino).emit('oferta', {conexionRemitente: conexion, sdp: sdp})
     }
 }
