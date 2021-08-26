@@ -93,7 +93,7 @@ module.exports = class SocketServer {
             if (desconectado){
                 let pos = this.conexiones.indexOf(desconectado)
                 let eliminado = this.conexiones.splice(pos, 1)
-                console.log("Conexión Terminada:", desconectado, reason)
+                //console.log("Conexión Terminada:", desconectado, reason)
             }
             this.conexiones.forEach(conexion => {
                 socket.to(conexion.socketId).emit('desconectado', desconectado.socketId)
