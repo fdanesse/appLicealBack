@@ -1,9 +1,13 @@
 // Las conexiones se identifican por el id del socket
 class Conexion{
-    constructor(socketId, userId, tiempo){
+    constructor(socketId, userId, tiempo, nombre, apellido, usuario, foto){
         this.socketId = socketId
         this.userId = userId
         this.tiempo = tiempo
+        this.nombre = nombre
+        this.apellido = apellido
+        this.usuario = usuario
+        this.foto = foto
     }
 }
 
